@@ -31,6 +31,7 @@ ingest_app = typer.Typer(help="Document ingestion and segmentation.",
 review_app = typer.Typer(help="Local review UI.", no_args_is_help=True)
 suggest_app = typer.Typer(help="LLM suggestion layer (opt-in).", no_args_is_help=True)
 reliability_app = typer.Typer(help="Inter-coder reliability.", no_args_is_help=True)
+export_app = typer.Typer(help="Versioned dataset export.", no_args_is_help=True)
 app.add_typer(db_app, name="db")
 app.add_typer(codebook_app, name="codebook")
 app.add_typer(coder_app, name="coder")
@@ -38,6 +39,7 @@ app.add_typer(ingest_app, name="ingest")
 app.add_typer(review_app, name="review")
 app.add_typer(suggest_app, name="suggest")
 app.add_typer(reliability_app, name="reliability")
+app.add_typer(export_app, name="export")
 
 
 @db_app.command("init")
@@ -385,6 +387,87 @@ def reliability_compute(run_id: str = typer.Argument(...)) -> None:
         k_str = f"{k:.3f}" if k is not None else "—"
         p_str = f"{p * 100:.0f}%" if p is not None else "—"
         typer.echo(f"  {field:35}  k={k_str:>7}  agr={p_str:>5}")
+
+
+@export_app.command("release")
+def export_release_cmd(
+    version: str = typer.Argument(..., help="Semantic version tag, e.g. '0.1.0'."),
+    out: Path = typer.Option(None, "--out", help="Override output directory."),
+    notes: str = typer.Option(None, "--notes"),
+    no_figures: bool = typer.Option(False, "--no-figures",
+                                    help="Skip PDF figures (still emits CSV tables)."),
+) -> None:
+    """Released export. Registers in dataset_versions (write-once)."""
+    from astralyzer.export import ExportError, export_release
+    try:
+        result = export_release(version, out_dir=out, notes=notes,
+                                with_figures=not no_figures)
+    except ExportError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(
+        f"released {result['version']}: {result['n_codes']} adjudicated codes "
+        f"→ {result['target']}"
+    )
+
+
+@export_app.command("wip")
+def export_wip_cmd(
+    out: Path = typer.Option(None, "--out", help="Override output directory."),
+    no_figures: bool = typer.Option(False, "--no-figures"),
+) -> None:
+    """Working export. Not registered in dataset_versions."""
+    from astralyzer.export import export_wip
+    result = export_wip(out_dir=out, with_figures=not no_figures)
+    typer.echo(
+        f"wip export: {result['n_codes']} adjudicated codes "
+        f"→ {result['target']}"
+    )
+
+
+@export_app.command("list")
+def export_list_cmd() -> None:
+    """List registered (released) dataset versions."""
+    from astralyzer.export import list_versions
+    rows = list_versions()
+    if not rows:
+        typer.echo("No released versions.")
+        return
+    for r in rows:
+        sha = (r.get("git_commit_sha") or "")[:7]
+        typer.echo(
+            f"{r['version']:12}  {r['generated_at']}  sha={sha}  "
+            f"docs={r['n_documents']:>3} prov={r['n_provisions']:>4} "
+            f"adj={r['n_adjudicated_codes']:>4}"
+            + (f"  — {r['notes']}" if r.get("notes") else "")
+        )
+
+
+@app.command("analyze")
+def analyze_cmd(
+    out: Path = typer.Option(None, "--out",
+                             help="Output dir; default data/analysis/<utc-stamp>/."),
+    no_figures: bool = typer.Option(False, "--no-figures"),
+) -> None:
+    """Write aggregations (and figures) without a full export."""
+    from datetime import datetime, timezone
+    from astralyzer import analysis as analysis_mod
+    from astralyzer.db import ROOT
+    if out is None:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        out = ROOT / "data" / "analysis" / stamp
+    paths = analysis_mod.write_tables(out)
+    typer.echo(f"wrote {len(paths)} table(s) → {out}")
+    for p in paths:
+        typer.echo(f"  {p.name}")
+    if not no_figures:
+        try:
+            figs = analysis_mod.write_figures(out)
+            typer.echo(f"wrote {len(figs)} figure(s)")
+            for p in figs:
+                typer.echo(f"  {p.name}")
+        except RuntimeError as e:
+            typer.echo(f"# figures skipped: {e}", err=True)
 
 
 if __name__ == "__main__":

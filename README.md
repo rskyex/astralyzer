@@ -76,6 +76,32 @@ The default model is `claude-sonnet-4-6`; override with `--model`.
 Idempotent: re-running skips provisions that already have a suggestion from
 the chosen coder. `--regenerate` replaces them. `--limit N` caps the count.
 
+## Versioned export and analysis
+
+Release exports register in `dataset_versions` (the `version` PK enforces
+write-once) and write a self-contained directory:
+
+    astralyzer export release 0.1.0 --notes "frozen for paper draft 2"
+    astralyzer export list
+
+A working ("wip") export writes the same files into a timestamped directory
+without registering, so mid-iteration outputs are still uniquely identifiable
+by their git SHA and timestamp:
+
+    astralyzer export wip
+
+`astralyzer analyze` writes just the aggregation tables and figures without
+a full export, for iterative exploration:
+
+    astralyzer analyze --out data/analysis/$(date +%FT%H%M%S)/
+
+Each export contains: `codes.csv` and `codes.json` (adjudicated codes with
+full provenance), `documents.csv`, `provisions.csv`, `terms.csv`,
+`codebook.json` (snapshot), `manifest.json` (git SHA, timestamp, per-document
+sha256), and an `analysis/` subdir with CSVs and (if matplotlib is installed)
+PDF figures. The headline aggregation `analysis/iea_by_domain.csv` is the
+"epistemic monopolisation map" — independent_epistemic_access × coupling_domain.
+
 ## Inter-coder reliability
 
 Draw a sample, double-code it (the review UI blinds each coder from the other
