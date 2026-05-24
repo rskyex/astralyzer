@@ -56,6 +56,26 @@ granularity.
     astralyzer ingest list
     astralyzer ingest show ost-1967
 
+## LLM suggestion layer (opt-in)
+
+Suggestions are written as `status='suggested'` rows attributed to an LLM coder.
+They are NEVER promoted into the gold record by code — a human must accept
+and adjudicate them through the review UI.
+
+Install the optional provider dep, register an LLM coder, then run:
+
+    pip install -e ".[suggest]"
+    export ANTHROPIC_API_KEY=...                   # never pass keys as flags
+    astralyzer suggest run --coder llm-claude --document ost-1967 --dry-run
+    astralyzer suggest run --coder llm-claude --document ost-1967
+
+By default the provider is `mock` (deterministic, no API call, useful for
+exercising the pipeline). Choose `--provider anthropic` to make real calls.
+The default model is `claude-sonnet-4-6`; override with `--model`.
+
+Idempotent: re-running skips provisions that already have a suggestion from
+the chosen coder. `--regenerate` replaces them. `--limit N` caps the count.
+
 ## Run the review UI
 
     astralyzer review serve            # http://127.0.0.1:5000

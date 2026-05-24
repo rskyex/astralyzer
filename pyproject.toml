@@ -14,6 +14,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+suggest = ["anthropic>=0.40"]
 analysis = ["pandas>=2.2", "scikit-learn>=1.4"]
 dev = ["pytest>=8.0"]
 

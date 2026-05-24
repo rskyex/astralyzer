@@ -29,11 +29,13 @@ coder_app = typer.Typer(help="Coder management.", no_args_is_help=True)
 ingest_app = typer.Typer(help="Document ingestion and segmentation.",
                          no_args_is_help=True)
 review_app = typer.Typer(help="Local review UI.", no_args_is_help=True)
+suggest_app = typer.Typer(help="LLM suggestion layer (opt-in).", no_args_is_help=True)
 app.add_typer(db_app, name="db")
 app.add_typer(codebook_app, name="codebook")
 app.add_typer(coder_app, name="coder")
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(review_app, name="review")
+app.add_typer(suggest_app, name="suggest")
 
 
 @db_app.command("init")
@@ -200,6 +202,78 @@ def ingest_show(document_id: str = typer.Argument(...)) -> None:
             f"    [{p['ordinal']:>3}] {p['citation_anchor']:20} "
             f"({p['char_start']}-{p['char_end']})  {snippet}"
         )
+
+
+@suggest_app.command("run")
+def suggest_run(
+    coder: str = typer.Option(..., "--coder",
+                              help="LLM coder handle (must be registered with --llm)."),
+    provider: str = typer.Option("mock", "--provider",
+                                 help="anthropic | mock (default: mock — opt into anthropic explicitly)."),
+    model: str = typer.Option(None, "--model",
+                              help="Provider-specific model id; defaults per provider."),
+    provision: str = typer.Option(None, "--provision",
+                                  help="Run on a single provision id."),
+    document: str = typer.Option(None, "--document",
+                                 help="Run on every provision in a document."),
+    all_: bool = typer.Option(False, "--all",
+                              help="Run on every provision in every document."),
+    limit: int = typer.Option(None, "--limit",
+                              help="Cap the number of provisions processed."),
+    regenerate: bool = typer.Option(
+        False, "--regenerate",
+        help="Replace existing suggestions from this coder instead of skipping."),
+    dry_run: bool = typer.Option(
+        False, "--dry-run",
+        help="Don't call the provider; report what would be processed."),
+) -> None:
+    """Generate suggested codes. Suggestions are stored as status='suggested'
+    and never enter the gold record automatically — they require human review."""
+    from astralyzer.suggest.provider import build_provider
+    from astralyzer.suggest.runner import SuggestionError, run_suggestions
+
+    selectors = [bool(provision), bool(document), all_]
+    if sum(selectors) != 1:
+        typer.echo("specify exactly one of --provision, --document, --all", err=True)
+        raise typer.Exit(2)
+
+    try:
+        prov = build_provider(provider, model)
+    except Exception as e:
+        typer.echo(f"provider error: {e}", err=True)
+        raise typer.Exit(1)
+
+    typer.echo(f"# astralyzer suggest  provider={provider}  model_ref={prov.model_ref}  coder={coder}")
+    if provider != "mock" and not dry_run:
+        typer.echo("# (this will make real API calls — set --dry-run to inspect targets first)")
+
+    try:
+        outcomes = run_suggestions(
+            provider=prov,
+            coder_id=coder,
+            provision_id=provision,
+            document_id=document,
+            all_=all_,
+            limit=limit,
+            regenerate=regenerate,
+            dry_run=dry_run,
+        )
+    except SuggestionError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(1)
+
+    n_ok = sum(1 for o in outcomes if o.status == "suggested")
+    n_skip = sum(1 for o in outcomes if o.status == "skipped")
+    n_fail = sum(1 for o in outcomes if o.status == "failed")
+    n_dry = sum(1 for o in outcomes if o.status == "dry-run")
+    for o in outcomes:
+        line = f"  [{o.status:>9}] {o.provision_id}"
+        if o.detail:
+            line += f"  — {o.detail}"
+        typer.echo(line)
+    typer.echo(
+        f"# done: suggested={n_ok} skipped={n_skip} failed={n_fail} dry_run={n_dry}"
+    )
 
 
 @review_app.command("serve")
