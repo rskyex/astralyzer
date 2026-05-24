@@ -88,7 +88,13 @@ def get_provision_neighbors(provision_id: str) -> dict[str, str | None]:
                 "next": nxt["id"] if nxt else None}
 
 
-def list_codes_for_provision(provision_id: str) -> list[dict[str, Any]]:
+def list_codes_for_provision(
+    provision_id: str,
+    *,
+    hide_coder_ids: tuple[str, ...] = (),
+) -> list[dict[str, Any]]:
+    placeholders = ",".join("?" * len(hide_coder_ids)) if hide_coder_ids else ""
+    where_extra = f" AND c.coder_id NOT IN ({placeholders})" if hide_coder_ids else ""
     with open_conn() as conn:
         codes = [dict(r) for r in conn.execute(
             "SELECT c.*, co.name AS coder_name, co.is_human AS coder_is_human, "
@@ -96,11 +102,11 @@ def list_codes_for_provision(provision_id: str) -> list[dict[str, Any]]:
             "FROM codes c "
             "JOIN coders co ON c.coder_id = co.id "
             "LEFT JOIN terms t ON c.term_id = t.id "
-            "WHERE c.provision_id = ? "
+            "WHERE c.provision_id = ?" + where_extra + " "
             "ORDER BY CASE c.status "
             "  WHEN 'adjudicated' THEN 0 WHEN 'human_draft' THEN 1 WHEN 'suggested' THEN 2 END, "
             "  c.created_at",
-            (provision_id,)
+            (provision_id, *hide_coder_ids)
         )]
         for c in codes:
             c["coupling_domains"] = [r["domain"] for r in conn.execute(

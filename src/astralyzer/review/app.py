@@ -21,6 +21,7 @@ import uuid
 
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 
+from astralyzer import reliability as rel
 from astralyzer.ids import slugify
 from astralyzer.review import repo
 from astralyzer.review.repo import VOCABS
@@ -124,13 +125,21 @@ def create_app() -> Flask:
         if prov is None:
             abort(404)
         doc = repo.get_document(prov["document_id"])
+        handle = request.cookies.get("coder") or ""
+        blinded_from = (
+            tuple(rel.coders_blinded_from(provision_id, handle)) if handle else ()
+        )
+        open_runs = rel.open_runs_for_provision(provision_id) if blinded_from else []
         return render_template(
             "provision.html",
             provision=prov,
             document=doc,
-            codes=repo.list_codes_for_provision(provision_id),
+            codes=repo.list_codes_for_provision(
+                provision_id, hide_coder_ids=blinded_from),
             terms=repo.list_terms(),
             neighbors=repo.get_provision_neighbors(provision_id),
+            blinded_from=blinded_from,
+            open_runs=open_runs,
         )
 
     @app.route("/provisions/<provision_id>/codes", methods=["POST"])
@@ -227,6 +236,24 @@ def create_app() -> Flask:
             coupling_domains=sug["coupling_domains"],
         )
         return redirect(url_for("provision_view", provision_id=sug["provision_id"]), code=303)
+
+    @app.route("/reliability")
+    def reliability_index():
+        return render_template("reliability_index.html", runs=rel.list_runs())
+
+    @app.route("/reliability/<run_id>")
+    def reliability_show(run_id: str):
+        run = rel.get_run(run_id)
+        if run is None:
+            abort(404)
+        disagreements = (
+            rel.list_disagreements(run_id) if run["status"] == "computed" else []
+        )
+        return render_template(
+            "reliability_show.html",
+            run=run,
+            disagreements=disagreements,
+        )
 
     @app.errorhandler(403)
     def forbidden(e):

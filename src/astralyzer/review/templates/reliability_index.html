@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}reliability — astralyzer{% endblock %}
+{% block breadcrumbs %}<span>reliability</span>{% endblock %}
+{% block main %}
+<h1>Reliability runs</h1>
+{% if not runs %}
+  <p class="empty">No reliability runs yet. Use <code>astralyzer reliability sample</code>.</p>
+{% else %}
+<table class="doc-list">
+  <thead>
+    <tr><th>id</th><th>coder A</th><th>coder B</th><th>status</th><th>created</th></tr>
+  </thead>
+  <tbody>
+  {% for r in runs %}
+    <tr>
+      <td><a href="{{ url_for('reliability_show', run_id=r.id) }}">{{ r.id }}</a></td>
+      <td><code>{{ r.coder_a_id }}</code></td>
+      <td><code>{{ r.coder_b_id }}</code></td>
+      <td><span class="status status-{{ r.status }}">{{ r.status }}</span></td>
+      <td class="muted">{{ r.created_at }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

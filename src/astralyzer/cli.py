@@ -30,12 +30,14 @@ ingest_app = typer.Typer(help="Document ingestion and segmentation.",
                          no_args_is_help=True)
 review_app = typer.Typer(help="Local review UI.", no_args_is_help=True)
 suggest_app = typer.Typer(help="LLM suggestion layer (opt-in).", no_args_is_help=True)
+reliability_app = typer.Typer(help="Inter-coder reliability.", no_args_is_help=True)
 app.add_typer(db_app, name="db")
 app.add_typer(codebook_app, name="codebook")
 app.add_typer(coder_app, name="coder")
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(review_app, name="review")
 app.add_typer(suggest_app, name="suggest")
+app.add_typer(reliability_app, name="reliability")
 
 
 @db_app.command("init")
@@ -288,6 +290,101 @@ def review_serve(
     flask_app = create_app()
     typer.echo(f"astralyzer review UI: http://{host}:{port}/")
     flask_app.run(host=host, port=port, debug=debug)
+
+
+@reliability_app.command("sample")
+def reliability_sample(
+    run_id: str = typer.Argument(..., help="Stable id for this run, e.g. 'rel-2026-05-24-a'."),
+    coder_a: str = typer.Option(..., "--coder-a"),
+    coder_b: str = typer.Option(..., "--coder-b"),
+    document: str = typer.Option(None, "--document",
+                                 help="Restrict sampling pool to this document."),
+    n: int = typer.Option(10, "--n", help="Sample size."),
+    seed: int = typer.Option(None, "--seed", help="Random seed for reproducibility."),
+    provisions: str = typer.Option(
+        None, "--provisions",
+        help="Comma-separated provision ids; overrides random sampling."),
+) -> None:
+    """Create a reliability run with a sampled set of provisions."""
+    from astralyzer import reliability as rel
+
+    if provisions:
+        sample = [p.strip() for p in provisions.split(",") if p.strip()]
+    else:
+        try:
+            sample = rel.select_sample(document_id=document, n=n, seed=seed)
+        except rel.ReliabilityError as e:
+            typer.echo(f"error: {e}", err=True)
+            raise typer.Exit(1)
+    try:
+        rel.create_run(run_id=run_id, coder_a_id=coder_a, coder_b_id=coder_b,
+                       sample_provisions=sample)
+    except rel.ReliabilityError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(1)
+    except Exception as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"created reliability run {run_id}: "
+               f"coder_a={coder_a} coder_b={coder_b} sample={len(sample)}")
+    for pid in sample:
+        typer.echo(f"  {pid}")
+
+
+@reliability_app.command("list")
+def reliability_list() -> None:
+    """List all reliability runs."""
+    from astralyzer import reliability as rel
+    runs = rel.list_runs()
+    if not runs:
+        typer.echo("No reliability runs.")
+        return
+    for r in runs:
+        typer.echo(
+            f"{r['id']:30}  {r['status']:9}  "
+            f"a={r['coder_a_id']:6}  b={r['coder_b_id']:6}  "
+            f"created={r['created_at']}"
+        )
+
+
+@reliability_app.command("show")
+def reliability_show(run_id: str = typer.Argument(...)) -> None:
+    """Show a run: status, sample, kappa (if computed)."""
+    from astralyzer import reliability as rel
+    run = rel.get_run(run_id)
+    if run is None:
+        typer.echo(f"no such run: {run_id}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"# {run['id']}")
+    typer.echo(f"  status:  {run['status']}")
+    typer.echo(f"  coder_a: {run['coder_a_id']}")
+    typer.echo(f"  coder_b: {run['coder_b_id']}")
+    typer.echo(f"  sample:  {len(run['sample_provisions'])} provisions")
+    if run["status"] == "computed":
+        typer.echo("  kappa:")
+        for field, k in run["per_field_kappa"].items():
+            p = run["percent_agreement"].get(field)
+            k_str = f"{k:.3f}" if k is not None else "—"
+            p_str = f"{p * 100:.0f}%" if p is not None else "—"
+            typer.echo(f"    {field:35}  k={k_str:>7}  agr={p_str:>5}")
+
+
+@reliability_app.command("compute")
+def reliability_compute(run_id: str = typer.Argument(...)) -> None:
+    """Compute Cohen's kappa + percent agreement; lift blinding."""
+    from astralyzer import reliability as rel
+    try:
+        result = rel.compute_run(run_id)
+    except rel.ReliabilityError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(1)
+    typer.echo(f"computed {result.run_id}: "
+               f"pairs={result.n_pairs}  missing={result.n_missing}")
+    for field, k in result.kappa.items():
+        p = result.agreement.get(field)
+        k_str = f"{k:.3f}" if k is not None else "—"
+        p_str = f"{p * 100:.0f}%" if p is not None else "—"
+        typer.echo(f"  {field:35}  k={k_str:>7}  agr={p_str:>5}")
 
 
 if __name__ == "__main__":

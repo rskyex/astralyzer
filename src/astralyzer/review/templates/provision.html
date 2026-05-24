@@ -7,6 +7,18 @@
 {% endblock %}
 {% block main %}
 
+{% if blinded_from %}
+<div class="blind-banner">
+  <strong>Reliability run active.</strong>
+  You are blinded from
+  {% for c in blinded_from %}<code>{{ c }}</code>{% if not loop.last %}, {% endif %}{% endfor %}
+  for this provision
+  {% if open_runs %}(run{{ 's' if open_runs|length > 1 else '' }}:
+    {% for r in open_runs %}<a href="{{ url_for('reliability_show', run_id=r.id) }}">{{ r.id }}</a>{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}.
+  Their codes are hidden until the run is computed.
+</div>
+{% endif %}
+
 <div class="prov-nav">
   {% if neighbors.prev %}<a href="{{ url_for('provision_view', provision_id=neighbors.prev) }}">← prev</a>{% else %}<span class="muted">← prev</span>{% endif %}
   <span>{{ provision.citation_anchor }} (#{{ provision.ordinal }})</span>

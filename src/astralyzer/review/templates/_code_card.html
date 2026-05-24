@@ -1,4 +1,4 @@
-<article class="code code-{{ code.status }}">
+<article id="code-{{ code.id }}" class="code code-{{ code.status }}">
   <header class="code-head">
     <span class="status status-{{ code.status }}">{{ code.status }}</span>
     <span class="muted">by <code>{{ code.coder_id }}</code>{% if not code.coder_is_human %} <span class="llm-tag">LLM</span>{% endif %}</span>

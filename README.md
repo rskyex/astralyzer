@@ -76,6 +76,25 @@ The default model is `claude-sonnet-4-6`; override with `--model`.
 Idempotent: re-running skips provisions that already have a suggestion from
 the chosen coder. `--regenerate` replaces them. `--limit N` caps the count.
 
+## Inter-coder reliability
+
+Draw a sample, double-code it (the review UI blinds each coder from the other
+while the run is open), then compute Cohen's kappa per field:
+
+    astralyzer reliability sample rel-2026-05-a \
+        --coder-a alice --coder-b bob --document ost-1967 --n 10 --seed 42
+    # ... both coders log in via the UI and submit drafts on the sample ...
+    astralyzer reliability compute rel-2026-05-a
+    astralyzer reliability show rel-2026-05-a
+
+The reliability run's `status` flips from `open` to `computed`, which lifts
+blinding in the UI. Disagreements are listed on `/reliability/<run_id>`
+with links to each provision for adjudication.
+
+Per the methodology, reliability runs require human coders on both sides;
+the schema trigger `trg_reliability_humans_only` rejects any attempt to use
+an LLM coder.
+
 ## Run the review UI
 
     astralyzer review serve            # http://127.0.0.1:5000
