@@ -1,0 +1,51 @@
+<article class="code code-{{ code.status }}">
+  <header class="code-head">
+    <span class="status status-{{ code.status }}">{{ code.status }}</span>
+    <span class="muted">by <code>{{ code.coder_id }}</code>{% if not code.coder_is_human %} <span class="llm-tag">LLM</span>{% endif %}</span>
+    <span class="muted">· {{ code.updated_at }}</span>
+    {% if code.suggested_confidence is not none %}<span class="muted">· conf {{ '%.2f'|format(code.suggested_confidence) }}</span>{% endif %}
+  </header>
+
+  {% if code.status == 'suggested' %}
+    <p class="disclaimer">Unverified LLM suggestion. Not part of the gold record until a human accepts and adjudicates it.</p>
+  {% endif %}
+
+  <dl class="code-fields">
+    {% if code.operative_term_raw %}<dt>term (raw)</dt><dd>{{ code.operative_term_raw }}</dd>{% endif %}
+    {% if code.term_label %}<dt>term (canonical)</dt><dd><code>{{ code.term_label }}</code></dd>{% endif %}
+    {% if code.operative_function %}<dt>function</dt><dd>{{ code.operative_function }}</dd>{% endif %}
+    {% if code.authority_default %}<dt>authority</dt><dd>{{ code.authority_default }}</dd>{% endif %}
+    {% if code.verification_mechanism %}<dt>verification</dt><dd>{{ code.verification_mechanism }}</dd>{% endif %}
+    {% if code.independent_epistemic_access is not none %}<dt>epistemic access</dt><dd>{{ code.independent_epistemic_access }}</dd>{% endif %}
+    {% if code.coupling_domains %}<dt>domains</dt><dd>{% for d in code.coupling_domains %}<span class="tag tag-{{ d }}">{{ d }}</span> {% endfor %}</dd>{% endif %}
+    {% if code.ai_operation_effect %}<dt>ai effect</dt><dd>{{ code.ai_operation_effect }}</dd>{% endif %}
+    {% if code.source_span_ref %}<dt>span</dt><dd class="span-quote">{{ code.source_span_ref }}</dd>{% endif %}
+    {% if code.rationale %}<dt>rationale</dt><dd>{{ code.rationale }}</dd>{% endif %}
+  </dl>
+
+  <footer class="code-actions">
+    {% if code.status == 'suggested' and current_coder and current_coder.is_human %}
+      <form method="post" action="{{ url_for('accept_suggestion', code_id=code.id) }}" style="display:inline">
+        <button type="submit" class="btn">accept → draft</button>
+      </form>
+      <form method="post" action="{{ url_for('delete_code', code_id=code.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-danger"
+                onclick="return confirm('Reject (delete) this suggestion?')">reject</button>
+      </form>
+    {% elif code.status == 'human_draft' and current_coder and current_coder.id == code.coder_id %}
+      <details>
+        <summary>edit</summary>
+        {% include "_code_form.html" %}
+      </details>
+      <form method="post" action="{{ url_for('adjudicate_code', code_id=code.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-primary">adjudicate →</button>
+      </form>
+      <form method="post" action="{{ url_for('delete_code', code_id=code.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-danger"
+                onclick="return confirm('Delete this draft?')">delete</button>
+      </form>
+    {% elif code.status == 'adjudicated' %}
+      <span class="muted">gold record — immutable from the UI</span>
+    {% endif %}
+  </footer>
+</article>

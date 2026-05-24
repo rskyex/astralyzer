@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}documents — astralyzer{% endblock %}
+{% block main %}
+<h1>Documents</h1>
+{% if not documents %}
+  <p class="empty">No documents ingested yet. Use <code>astralyzer ingest add</code>.</p>
+{% else %}
+<table class="doc-list">
+  <thead>
+    <tr>
+      <th>id</th>
+      <th>title</th>
+      <th>instrument</th>
+      <th>version/date</th>
+      <th class="num">provisions</th>
+      <th class="num">adjudicated</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for d in documents %}
+    <tr>
+      <td><a href="{{ url_for('document_view', doc_id=d.id) }}">{{ d.id }}</a></td>
+      <td>{{ d.full_title }}</td>
+      <td><span class="tag tag-{{ d.instrument_type }}">{{ d.instrument_type }}</span></td>
+      <td>{{ d.version_or_date }}</td>
+      <td class="num">{{ d.n_provisions }}</td>
+      <td class="num">{{ d.n_adjudicated }} / {{ d.n_provisions }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

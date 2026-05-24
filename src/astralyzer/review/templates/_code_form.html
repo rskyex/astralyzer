@@ -1,0 +1,95 @@
+{% set action = url_for('update_code', code_id=code.id) if code else url_for('create_code', provision_id=provision.id) %}
+<form method="post" action="{{ action }}" class="code-form">
+  <div class="row">
+    <label>operative term (raw)
+      <input type="text" name="operative_term_raw" value="{{ code.operative_term_raw or '' if code else '' }}" placeholder="verbatim from the provision">
+    </label>
+  </div>
+
+  <div class="row">
+    <label>canonical term
+      <select name="term_id">
+        <option value="">— none —</option>
+        {% for t in terms %}
+          <option value="{{ t.id }}" {% if code and code.term_id == t.id %}selected{% endif %}>{{ t.canonical_label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>or add a new canonical term
+      <input type="text" name="term_new" placeholder="leave blank unless adding">
+    </label>
+  </div>
+
+  <div class="row">
+    <label>operative function
+      <select name="operative_function">
+        <option value="">—</option>
+        {% for v in VOCABS.operative_function %}
+          <option value="{{ v }}" {% if code and code.operative_function == v %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>authority default
+      <select name="authority_default">
+        <option value="">—</option>
+        {% for v in VOCABS.authority_default %}
+          <option value="{{ v }}" {% if code and code.authority_default == v %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <div class="row">
+    <label>verification mechanism
+      <select name="verification_mechanism">
+        <option value="">—</option>
+        {% for v in VOCABS.verification_mechanism %}
+          <option value="{{ v }}" {% if code and code.verification_mechanism == v %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>independent epistemic access
+      <select name="independent_epistemic_access">
+        <option value="">—</option>
+        {% for v in VOCABS.independent_epistemic_access %}
+          <option value="{{ v }}" {% if code and code.independent_epistemic_access == v %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <fieldset class="domains">
+    <legend>coupling domains</legend>
+    {% for d in VOCABS.coupling_domains %}
+      <label class="chk">
+        <input type="checkbox" name="coupling_domains" value="{{ d }}"
+               {% if code and d in code.coupling_domains %}checked{% endif %}>
+        {{ d }}
+      </label>
+    {% endfor %}
+  </fieldset>
+
+  <div class="row">
+    <label>AI operation effect
+      <textarea name="ai_operation_effect" rows="2">{{ code.ai_operation_effect or '' if code else '' }}</textarea>
+    </label>
+  </div>
+
+  <div class="row">
+    <label>source span (verbatim quote from the provision)
+      <textarea name="source_span_ref" rows="2" placeholder="paste the exact substring from the provision text">{{ code.source_span_ref or '' if code else '' }}</textarea>
+    </label>
+  </div>
+
+  <div class="row">
+    <label>rationale
+      <textarea name="rationale" rows="2">{{ code.rationale or '' if code else '' }}</textarea>
+    </label>
+  </div>
+
+  <div class="row">
+    <button type="submit" class="btn btn-primary">
+      {{ 'save changes' if code else 'create draft' }}
+    </button>
+  </div>
+</form>

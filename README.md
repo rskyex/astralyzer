@@ -9,17 +9,12 @@ interpretive authority across instruments.
 The methodological invariants this codebase enforces are in `docs/methodology.md`. Read
 that file before changing the schema.
 
-## Phase 1 — schema and storage
-
-Storage layer only. No ingestion, no review UI, no LLM suggestions yet. Subsequent phases
-are gated on review.
-
-### Setup
+## Setup
 
     python -m venv .venv && . .venv/bin/activate
     pip install -e ".[dev]"
 
-### Initialize the database
+## Initialize the database
 
     astralyzer db init
     astralyzer db status
@@ -41,6 +36,35 @@ Handles are write-once and never reassigned to a different person.
     astralyzer coder add llm-claude --name "Claude Suggester" --role llm \
         --llm --model anthropic:claude-opus-4-7
 
-### Tests
+## Ingest a document
+
+    astralyzer ingest add ost-1967 \
+        --short-name "OST" \
+        --full-title "Outer Space Treaty" \
+        --instrument-type space \
+        --source-url "https://www.unoosa.org/.../outerspacetreaty.html" \
+        --version-or-date "1967-01-27" \
+        --retrieval-date "2026-05-24" \
+        --file /path/to/ost.txt
+
+The default segmenter recognizes `Article I` / `Article 1` / `Art. 1` / `Section 1` / `§ 1`
+markers at line start, and preserves any pre-marker prose as a `Preamble` segment.
+Override with `--segments segs.yaml` (a list of `{anchor, char_start}`) or
+`--single-provision` for documents with no internal structure to code at provision
+granularity.
+
+    astralyzer ingest list
+    astralyzer ingest show ost-1967
+
+## Run the review UI
+
+    astralyzer review serve            # http://127.0.0.1:5000
+
+Pick a coder from the header dropdown; you can then add draft codes on any provision,
+edit your own drafts, and promote drafts to adjudicated. LLM coders are selectable
+but cannot write drafts or adjudicate — they can only produce `suggested` codes
+(Phase 4 will populate those automatically).
+
+## Tests
 
     pytest

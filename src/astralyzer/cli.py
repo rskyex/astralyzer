@@ -28,10 +28,12 @@ codebook_app = typer.Typer(help="Codebook operations.", no_args_is_help=True)
 coder_app = typer.Typer(help="Coder management.", no_args_is_help=True)
 ingest_app = typer.Typer(help="Document ingestion and segmentation.",
                          no_args_is_help=True)
+review_app = typer.Typer(help="Local review UI.", no_args_is_help=True)
 app.add_typer(db_app, name="db")
 app.add_typer(codebook_app, name="codebook")
 app.add_typer(coder_app, name="coder")
 app.add_typer(ingest_app, name="ingest")
+app.add_typer(review_app, name="review")
 
 
 @db_app.command("init")
@@ -198,6 +200,20 @@ def ingest_show(document_id: str = typer.Argument(...)) -> None:
             f"    [{p['ordinal']:>3}] {p['citation_anchor']:20} "
             f"({p['char_start']}-{p['char_end']})  {snippet}"
         )
+
+
+@review_app.command("serve")
+def review_serve(
+    host: str = typer.Option("127.0.0.1", "--host"),
+    port: int = typer.Option(5000, "--port"),
+    debug: bool = typer.Option(False, "--debug"),
+) -> None:
+    """Run the local review UI."""
+    from astralyzer.review.app import create_app
+
+    flask_app = create_app()
+    typer.echo(f"astralyzer review UI: http://{host}:{port}/")
+    flask_app.run(host=host, port=port, debug=debug)
 
 
 if __name__ == "__main__":

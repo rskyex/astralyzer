@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}astralyzer review{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='astralyzer.css') }}">
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+</head>
+<body>
+<header>
+  <nav>
+    <a href="{{ url_for('index') }}" class="brand">astralyzer</a>
+    <span class="sep">/</span>
+    {% block breadcrumbs %}{% endblock %}
+  </nav>
+  <form method="post" action="{{ url_for('set_coder') }}" class="coder-picker">
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <label>coding as:</label>
+    <select name="coder" onchange="this.form.submit()">
+      <option value="">— select coder —</option>
+      {% for c in all_coders %}
+        <option value="{{ c.id }}" {% if current_coder and current_coder.id == c.id %}selected{% endif %}>
+          {{ c.id }} ({{ c.name }}){% if not c.is_human %} [llm]{% endif %}
+        </option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit">set</button></noscript>
+  </form>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flashes">
+      {% for category, msg in messages %}
+        <div class="flash flash-{{ category }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<main>
+  {% block main %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ document.short_name }} — astralyzer{% endblock %}
+{% block breadcrumbs %}<span>{{ document.id }}</span>{% endblock %}
+{% block main %}
+<h1>{{ document.full_title }}</h1>
+<dl class="doc-meta">
+  <dt>id</dt><dd><code>{{ document.id }}</code></dd>
+  <dt>instrument</dt><dd><span class="tag tag-{{ document.instrument_type }}">{{ document.instrument_type }}</span></dd>
+  <dt>version/date</dt><dd>{{ document.version_or_date }}</dd>
+  <dt>retrieved</dt><dd>{{ document.retrieval_date }}</dd>
+  <dt>source</dt><dd><a href="{{ document.official_source_url }}" rel="noopener">{{ document.official_source_url }}</a></dd>
+  <dt>sha256</dt><dd><code class="sha">{{ document.raw_text_sha256 }}</code></dd>
+</dl>
+
+<h2>Provisions</h2>
+<table class="prov-list">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>anchor</th>
+      <th>excerpt</th>
+      <th class="num">sug</th>
+      <th class="num">draft</th>
+      <th class="num">adj</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for p in provisions %}
+    <tr>
+      <td class="num">{{ p.ordinal }}</td>
+      <td><a href="{{ url_for('provision_view', provision_id=p.id) }}">{{ p.citation_anchor }}</a></td>
+      <td class="excerpt">{{ p.text[:140] }}{% if p.text|length > 140 %}…{% endif %}</td>
+      <td class="num">{{ p.n_suggested }}</td>
+      <td class="num">{{ p.n_draft }}</td>
+      <td class="num {% if p.n_adjudicated %}adj{% endif %}">{{ p.n_adjudicated }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
