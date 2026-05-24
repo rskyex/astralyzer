@@ -1,0 +1,102 @@
+# Living codebook for the Interpretive Authority Mapping Engine.
+#
+# Bump `version` when decision rules, value domains, or field definitions change.
+# `decision_rules` placeholders must be filled in BEFORE first adjudication —
+# adjudicated codes are the gold record, and a codebook without decision rules
+# cannot be cited.
+
+version: "0.1.0-draft"
+
+fields:
+
+  - field: operative_term_raw
+    definition: |
+      Verbatim capture of the undefined operative term (word or short phrase)
+      whose meaning allocates interpretive authority. Free text; preserves
+      fidelity to the source text. Captured at coding time.
+    decision_rules: "TODO — fill in before first adjudication."
+    examples: []
+    value_domain: null
+
+  - field: term_id
+    definition: |
+      Canonical term reference. Different surface forms of the same operative
+      concept ('peaceful purposes', 'Peaceful Purposes', 'peaceful use')
+      resolve to the same canonical term. Assigned at adjudication; an
+      "add new canonical term" affordance in the review UI lets adjudicators
+      introduce new entries to the terms vocabulary.
+    decision_rules: "TODO — fill in before first adjudication."
+    examples: []
+    value_domain: null
+
+  - field: operative_function
+    definition: |
+      The functional role the operative term plays in the provision.
+    decision_rules: "TODO — fill in before first adjudication."
+    examples: []
+    value_domain:
+      - permits
+      - restricts
+      - triggers_notification
+      - defines_zone
+      - allocates_right
+      - assigns_authority
+      - other
+
+  - field: authority_default
+    definition: |
+      The actor whose interpretation prevails by default in the absence of
+      contestation.
+    decision_rules: "TODO — fill in before first adjudication."
+    examples: []
+    value_domain:
+      - operating_party
+      - launching_state
+      - consensus_body
+      - unspecified
+      - other
+
+  - field: verification_mechanism
+    definition: |
+      The mechanism by which the operative term's application is verifiable
+      by parties other than the operating one.
+    decision_rules: "TODO — fill in before first adjudication."
+    examples: []
+    value_domain:
+      - none
+      - notification
+      - inspection
+      - third_party_monitoring
+      - data_sharing
+      - other
+
+  - field: independent_epistemic_access
+    definition: |
+      Ordinal indicator of whether outside parties have access to evidence
+      sufficient to contest the operating party's interpretation.
+        0 = none
+        1 = partial or derivative
+        2 = independent
+    decision_rules: "TODO — fill in before first adjudication."
+    examples: []
+    value_domain: [0, 1, 2]
+
+  - field: ai_operation_effect
+    definition: |
+      Free-text description of how the provision's operation is altered when
+      the operating party is, or relies on, an AI system.
+    decision_rules: "TODO — fill in before first adjudication."
+    examples: []
+    value_domain: null
+
+  - field: coupling_domains
+    definition: |
+      The governance domains the provision couples to (multi-select). Stored
+      as a join table; each code may map to one or more domains.
+    decision_rules: "TODO — fill in before first adjudication."
+    examples: []
+    value_domain:
+      - space
+      - nuclear
+      - cyber
+      - ai

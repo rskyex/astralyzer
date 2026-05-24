@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astralyzer"
+version = "0.1.0"
+description = "Interpretive Authority Mapping Engine — analysis core for the Space Mandate Atlas."
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+review = ["flask>=3.0", "jinja2>=3.1"]
+analysis = ["pandas>=2.2", "scikit-learn>=1.4"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+astralyzer = "astralyzer.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
