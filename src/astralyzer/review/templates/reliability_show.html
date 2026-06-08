@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}reliability {{ run.id }} — astralyzer{% endblock %}
+{% block breadcrumbs %}
+  <a href="{{ url_for('reliability_index') }}">reliability</a>
+  <span class="sep">/</span>
+  <span>{{ run.id }}</span>
+{% endblock %}
+{% block main %}
+<h1>Reliability run <code>{{ run.id }}</code></h1>
+
+<dl class="doc-meta">
+  <dt>coder A</dt><dd><code>{{ run.coder_a_id }}</code></dd>
+  <dt>coder B</dt><dd><code>{{ run.coder_b_id }}</code></dd>
+  <dt>status</dt><dd><span class="status status-{{ run.status }}">{{ run.status }}</span></dd>
+  <dt>created</dt><dd>{{ run.created_at }}</dd>
+  <dt>sample size</dt><dd>{{ run.sample_provisions|length }}</dd>
+</dl>
+
+<h2>Sample provisions</h2>
+<ul class="sample-list">
+{% for pid in run.sample_provisions %}
+  <li><a href="{{ url_for('provision_view', provision_id=pid) }}">{{ pid }}</a></li>
+{% endfor %}
+</ul>
+
+{% if run.status == 'open' %}
+  <p class="warning">Run is open. Cohen's kappa will be computed after both
+  coders submit their drafts; run <code>astralyzer reliability compute {{ run.id }}</code>
+  to finalize.</p>
+{% else %}
+<h2>Cohen's kappa (per field)</h2>
+<table class="kappa-table">
+  <thead><tr><th>field</th><th class="num">kappa</th><th class="num">% agreement</th></tr></thead>
+  <tbody>
+  {% for field, kvalue in run.per_field_kappa.items() %}
+    <tr>
+      <td>{{ field }}</td>
+      <td class="num">{% if kvalue is none %}—{% else %}{{ '%.3f'|format(kvalue) }}{% endif %}</td>
+      <td class="num">{% set p = run.percent_agreement.get(field) %}{% if p is none %}—{% else %}{{ '%.0f'|format(p * 100) }}%{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>Disagreements <span class="muted">({{ disagreements|length }} provisions)</span></h2>
+{% if not disagreements %}
+  <p class="empty">No disagreements — coders matched on every field.</p>
+{% else %}
+{% for d in disagreements %}
+  <article class="disagreement">
+    <h3><a href="{{ url_for('provision_view', provision_id=d.provision_id) }}">{{ d.provision_id }}</a></h3>
+    <table class="disagree-fields">
+      <thead><tr><th>field</th><th>coder A ({{ run.coder_a_id }})</th><th>coder B ({{ run.coder_b_id }})</th></tr></thead>
+      <tbody>
+      {% for row in d.diffs %}
+        <tr>
+          <td>{{ row.field }}</td>
+          <td>{{ row.a if row.a is not none else '—' }}</td>
+          <td>{{ row.b if row.b is not none else '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% endblock %}

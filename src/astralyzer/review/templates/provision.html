@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ document.short_name }} {{ provision.citation_anchor }} — astralyzer{% endblock %}
+{% block breadcrumbs %}
+  <a href="{{ url_for('document_view', doc_id=document.id) }}">{{ document.id }}</a>
+  <span class="sep">/</span>
+  <span>{{ provision.citation_anchor }}</span>
+{% endblock %}
+{% block main %}
+
+{% if blinded_from %}
+<div class="blind-banner">
+  <strong>Reliability run active.</strong>
+  You are blinded from
+  {% for c in blinded_from %}<code>{{ c }}</code>{% if not loop.last %}, {% endif %}{% endfor %}
+  for this provision
+  {% if open_runs %}(run{{ 's' if open_runs|length > 1 else '' }}:
+    {% for r in open_runs %}<a href="{{ url_for('reliability_show', run_id=r.id) }}">{{ r.id }}</a>{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}.
+  Their codes are hidden until the run is computed.
+</div>
+{% endif %}
+
+<div class="prov-nav">
+  {% if neighbors.prev %}<a href="{{ url_for('provision_view', provision_id=neighbors.prev) }}">← prev</a>{% else %}<span class="muted">← prev</span>{% endif %}
+  <span>{{ provision.citation_anchor }} (#{{ provision.ordinal }})</span>
+  {% if neighbors.next %}<a href="{{ url_for('provision_view', provision_id=neighbors.next) }}">next →</a>{% else %}<span class="muted">next →</span>{% endif %}
+</div>
+
+<div class="split">
+  <section class="prov-text">
+    <h2>{{ provision.citation_anchor }}</h2>
+    <p class="muted">{{ provision.id }} · chars {{ provision.char_start }}–{{ provision.char_end }}</p>
+    <div class="provision-body">{{ provision.text }}</div>
+  </section>
+
+  <section class="codes">
+    <h2>Codes <span class="muted">({{ codes|length }})</span></h2>
+
+    {% for code in codes %}
+      {% include "_code_card.html" %}
+    {% else %}
+      <p class="empty">No codes on this provision yet.</p>
+    {% endfor %}
+
+    <details class="code-form-wrap" {% if not codes %}open{% endif %}>
+      <summary>+ add a draft code</summary>
+      {% if current_coder is none or not current_coder.is_human %}
+        <p class="warning">Select a human coder in the header to add a draft.</p>
+      {% else %}
+        {% set code = none %}
+        {% include "_code_form.html" %}
+      {% endif %}
+    </details>
+  </section>
+</div>
+{% endblock %}

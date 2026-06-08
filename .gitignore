@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+.env
+
+# DB is generated; the source of truth in git is migrations/ and codebook/.
+/data/astralyzer.db
+/data/astralyzer.db-journal
+/data/astralyzer.db-wal
+/data/astralyzer.db-shm
+
+# Exports are generated artifacts; release manifests travel with the published paper, not the repo.
+/data/exports/
